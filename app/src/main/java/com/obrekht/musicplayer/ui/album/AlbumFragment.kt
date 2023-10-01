@@ -8,7 +8,6 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.media3.common.MediaItem
@@ -23,12 +22,7 @@ import com.obrekht.musicplayer.databinding.FragmentAlbumBinding
 import com.obrekht.musicplayer.model.Track
 import com.obrekht.musicplayer.service.PlaybackService
 import com.obrekht.musicplayer.utils.viewBinding
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.isActive
@@ -47,14 +41,7 @@ class AlbumFragment : Fragment(R.layout.fragment_album) {
 
     private val mediaControllerListener = object : Player.Listener {
         override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
-            with(binding.bottomSheetPlayer) {
-                trackName.text = if (mediaMetadata.title.isNullOrBlank()) {
-                    getString(R.string.unknown_track)
-                } else {
-                    mediaMetadata.title
-                }
-                artist.text = mediaMetadata.artist
-            }
+            updateTrackInfo()
         }
 
         override fun onEvents(player: Player, events: Player.Events) {
@@ -139,6 +126,16 @@ class AlbumFragment : Fragment(R.layout.fragment_album) {
 
     override fun onStart() {
         super.onStart()
+        initializePlayer()
+    }
+
+    override fun onStop() {
+        releasePlayer()
+        super.onStop()
+    }
+
+    private fun initializePlayer() {
+        if (mediaController != null) return
 
         val context = requireContext()
         val sessionToken =
@@ -155,16 +152,21 @@ class AlbumFragment : Fragment(R.layout.fragment_album) {
             }
     }
 
-    override fun onStop() {
+    private fun releasePlayer() {
         mediaControllerFuture?.let(MediaController::releaseFuture)
+        mediaController?.release()
         mediaControllerFuture = null
         mediaController = null
-        super.onStop()
     }
 
     private fun onMediaControllerReady(mediaController: MediaController) {
-        this.mediaController = mediaController
-        mediaController.addListener(mediaControllerListener)
+        this.mediaController = mediaController.apply {
+            addListener(mediaControllerListener)
+            prepare()
+        }
+
+        updatePlayPauseButton()
+        updateTrackInfo()
     }
 
     private fun updatePlayPauseButton() {
@@ -189,9 +191,22 @@ class AlbumFragment : Fragment(R.layout.fragment_album) {
 
     private fun updateTrackProgress() {
         with(binding.bottomSheetPlayer.trackProgress) {
-            setProgress(mediaController?.run {
+            progress = mediaController?.run {
                 (currentPosition.toDouble() / duration * max).toInt()
-            } ?: 0, true)
+            } ?: 0
+        }
+    }
+
+    private fun updateTrackInfo() {
+        val mediaMetadata = mediaController?.mediaMetadata ?: return
+
+        with(binding.bottomSheetPlayer) {
+            trackName.text = if (mediaMetadata.title.isNullOrBlank()) {
+                getString(R.string.unknown_track)
+            } else {
+                mediaMetadata.title
+            }
+            artist.text = mediaMetadata.artist
         }
     }
 }
