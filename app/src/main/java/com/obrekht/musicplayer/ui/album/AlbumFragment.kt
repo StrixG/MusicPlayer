@@ -51,7 +51,7 @@ class AlbumFragment : Fragment(R.layout.fragment_album) {
                     Player.EVENT_PLAYBACK_SUPPRESSION_REASON_CHANGED
                 )
             ) {
-                updatePlayPauseButton()
+                updateButtons()
             }
         }
     }
@@ -165,11 +165,11 @@ class AlbumFragment : Fragment(R.layout.fragment_album) {
             prepare()
         }
 
-        updatePlayPauseButton()
+        updateButtons()
         updateTrackInfo()
     }
 
-    private fun updatePlayPauseButton() {
+    private fun updateButtons() {
         val shouldShowPlay = Util.shouldShowPlayButton(mediaController)
 
         val textResourceId = if (shouldShowPlay) {
@@ -184,9 +184,12 @@ class AlbumFragment : Fragment(R.layout.fragment_album) {
             R.drawable.round_pause_24
         }
 
-        binding.buttonPlayAlbum.setText(textResourceId)
-        binding.buttonPlayAlbum.setIconResource(iconResourceId)
-        binding.bottomSheetPlayer.buttonPlay.setIconResource(iconResourceId)
+        with(binding) {
+            buttonPlayAlbum.setText(textResourceId)
+            buttonPlayAlbum.setIconResource(iconResourceId)
+            bottomSheetPlayer.buttonPlay.setIconResource(iconResourceId)
+            bottomSheetPlayer.buttonSkipNext.isVisible = mediaController?.hasNextMediaItem() == true
+        }
     }
 
     private fun updateTrackProgress() {
