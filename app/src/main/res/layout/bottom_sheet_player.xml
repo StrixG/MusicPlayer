@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/bottom_sheet"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?attr/colorPrimaryContainer"
+    android:clickable="true"
+    android:focusable="true"
+    android:minHeight="@dimen/bottom_player_height"
+    app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
+
+    <com.google.android.material.progressindicator.LinearProgressIndicator
+        android:id="@+id/track_progress"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:max="1000"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:progress="50" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/button_play"
+        style="@style/Widget.Material3.Button.IconButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:icon="@drawable/round_play_arrow_24"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/track_progress" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/button_skip_next"
+        style="@style/Widget.Material3.Button.IconButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:icon="@drawable/round_skip_next_24"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/track_progress" />
+
+    <TextView
+        android:id="@+id/track_name"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="@dimen/common_spacing"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+        android:textColor="?attr/colorOnPrimaryContainer"
+        app:layout_constraintBottom_toTopOf="@id/artist"
+        app:layout_constraintEnd_toStartOf="@id/button_skip_next"
+        app:layout_constraintStart_toEndOf="@id/button_play"
+        app:layout_constraintTop_toBottomOf="@id/track_progress"
+        app:layout_constraintVertical_chainStyle="packed"
+        tools:text="@sample/album.json/data/tracks/name" />
+
+    <TextView
+        android:id="@+id/artist"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="@dimen/common_spacing"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/button_skip_next"
+        app:layout_constraintStart_toEndOf="@id/button_play"
+        app:layout_constraintTop_toBottomOf="@id/track_name"
+        tools:text="@sample/album.json/data/artist" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

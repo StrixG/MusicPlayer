@@ -1,0 +1,23 @@
+{
+  "data": [
+    {
+      "id": 1,
+      "name": "Eyelid Movies",
+      "artist": "Phantogram",
+      "tracks": [
+        {
+          "id": 1,
+          "name": "Mouthful of Diamonds"
+        },
+        {
+          "id": 2,
+          "name": "When I'm Small"
+        },
+        {
+          "id": 3,
+          "name": "Turn it Off"
+        }
+      ]
+    }
+  ]
+}
