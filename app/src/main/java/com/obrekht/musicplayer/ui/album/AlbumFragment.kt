@@ -190,6 +190,7 @@ class AlbumFragment : Fragment(R.layout.fragment_album) {
 
             if (isPlaying || playWhenReady) {
                 showBottomPlayer()
+                highlightCurrentTrack()
             }
         }
 
