@@ -7,12 +7,11 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.obrekht.musicplayer.databinding.ItemTrackBinding
-import com.obrekht.musicplayer.model.Album
 import com.obrekht.musicplayer.model.Track
 
 class AlbumTrackAdapter(
     private val interactionListener: TrackInteractionListener
-) : ListAdapter<Track, AlbumTrackAdapter.ViewHolder>(DiffCallback()) {
+) : ListAdapter<TrackItem, AlbumTrackAdapter.ViewHolder>(DiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val binding = ItemTrackBinding.inflate(LayoutInflater.from(parent.context), parent, false)
@@ -37,13 +36,17 @@ class AlbumTrackAdapter(
 
         init {
             itemView.setOnClickListener {
-                track?.let { track -> interactionListener.onClick(track, it) }
+                track?.let { track ->
+                    interactionListener.onClick(track, bindingAdapterPosition, it)
+                }
             }
         }
 
-        fun bind(track: Track) {
-            this.track = track
+        fun bind(item: TrackItem) {
+            val track = item.track.also { this.track = it }
             with(binding) {
+                itemView.isSelected = item.isSelected
+
                 trackId.text = track.id.toString()
                 trackName.text = track.file
             }
@@ -54,17 +57,22 @@ class AlbumTrackAdapter(
         }
     }
 
-    class DiffCallback : DiffUtil.ItemCallback<Track>() {
-        override fun areItemsTheSame(oldItem: Track, newItem: Track): Boolean {
-            return oldItem.id == newItem.id
+    class DiffCallback : DiffUtil.ItemCallback<TrackItem>() {
+        override fun areItemsTheSame(oldItem: TrackItem, newItem: TrackItem): Boolean {
+            return oldItem.track.id == newItem.track.id
         }
 
-        override fun areContentsTheSame(oldItem: Track, newItem: Track): Boolean {
+        override fun areContentsTheSame(oldItem: TrackItem, newItem: TrackItem): Boolean {
             return oldItem == newItem
         }
     }
 }
 
 interface TrackInteractionListener {
-    fun onClick(track: Track, view: View) {}
+    fun onClick(track: Track, position: Int, view: View) {}
 }
+
+data class TrackItem(
+    val track: Track,
+    val isSelected: Boolean = false
+)

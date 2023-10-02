@@ -11,7 +11,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.media3.common.MediaItem
-import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.common.util.Util
 import androidx.media3.session.MediaController
@@ -36,11 +35,17 @@ class AlbumFragment : Fragment(R.layout.fragment_album) {
     private val binding by viewBinding(FragmentAlbumBinding::bind)
     private val viewModel: AlbumViewModel by viewModels { AlbumViewModel.Factory }
 
+    private var adapter: AlbumTrackAdapter? = null
+
     private var mediaControllerFuture: Future<MediaController>? = null
     private var mediaController: MediaController? = null
 
+    private var trackList: List<Track> = emptyList()
+
     private val mediaControllerListener = object : Player.Listener {
-        override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
+
+        override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+            highlightCurrentTrack()
             updateTrackInfo()
         }
 
@@ -51,46 +56,58 @@ class AlbumFragment : Fragment(R.layout.fragment_album) {
                     Player.EVENT_PLAYBACK_SUPPRESSION_REASON_CHANGED
                 )
             ) {
+                if (player.playWhenReady) {
+                    showBottomPlayer()
+                }
+
                 updateButtons()
+                updateTrackProgress()
+                updateTrackInfo()
             }
         }
     }
 
     private val trackInteractionListener = object : TrackInteractionListener {
-        override fun onClick(track: Track, view: View) {
-            mediaController?.apply {
-                val trackUrl = viewModel.getTrackUrl(track) ?: return
-                val mediaItem = MediaItem.fromUri(trackUrl)
-
-                setMediaItem(mediaItem)
-                prepare()
-                play()
+        override fun onClick(track: Track, position: Int, view: View) {
+            mediaController?.run {
+                if (currentMediaItem == null) {
+                    populatePlaylist()
+                }
+                if (currentMediaItemIndex != position) {
+                    seekToDefaultPosition(position)
+                    play()
+                } else {
+                    Util.handlePlayPauseButtonAction(this)
+                }
             }
         }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) = with(binding) {
-        val adapter = AlbumTrackAdapter(trackInteractionListener)
-        binding.trackList.adapter = adapter
-
-        val playerBinding = binding.bottomSheetPlayer
+        adapter = AlbumTrackAdapter(trackInteractionListener)
+        binding.trackListView.adapter = adapter
 
         with(binding) {
-            container.layoutParams = (container.layoutParams as MarginLayoutParams).apply {
-                bottomMargin = resources.getDimension(R.dimen.bottom_player_height).toInt()
+            buttonPlayAlbum.setOnClickListener {
+                mediaController?.run {
+                    if (Util.shouldShowPlayButton(this) && currentMediaItem == null) {
+                        populatePlaylist()
+                        currentMediaItem
+                    }
+                    Util.handlePlayPauseButtonAction(this)
+                }
             }
         }
 
-        with(playerBinding) {
+        with(binding.bottomSheetPlayer) {
             buttonPlay.setOnClickListener {
                 mediaController?.run {
-                    if (isPlaying) {
-                        pause()
-                    } else {
-                        prepare()
-                        play()
-                    }
+                    Util.handlePlayPauseButtonAction(this)
                 }
+            }
+
+            buttonSkipNext.setOnClickListener {
+                mediaController?.seekToNextMediaItem()
             }
         }
 
@@ -104,7 +121,8 @@ class AlbumFragment : Fragment(R.layout.fragment_album) {
 
                         publishedDivider.isVisible = true
 
-                        adapter.submitList(album.tracks)
+                        trackList = album.tracks
+                        adapter?.submitList(trackList.map(::TrackItem))
                     }
                 }.launchIn(this)
 
@@ -122,6 +140,11 @@ class AlbumFragment : Fragment(R.layout.fragment_album) {
         }
 
         Unit
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        adapter = null
     }
 
     override fun onStart() {
@@ -161,12 +184,48 @@ class AlbumFragment : Fragment(R.layout.fragment_album) {
 
     private fun onMediaControllerReady(mediaController: MediaController) {
         this.mediaController = mediaController.apply {
+            repeatMode = Player.REPEAT_MODE_ALL
             addListener(mediaControllerListener)
             prepare()
+
+            if (isPlaying || playWhenReady) {
+                showBottomPlayer()
+            }
         }
 
         updateButtons()
         updateTrackInfo()
+    }
+
+    private fun populatePlaylist() {
+        mediaController?.setMediaItems(trackList.mapNotNull { track ->
+            viewModel.getTrackUrl(track)?.let {
+                MediaItem.Builder()
+                    .setMediaId(track.id.toString())
+                    .setUri(viewModel.getTrackUrl(track))
+                    .build()
+            }
+        })
+    }
+
+    private fun showBottomPlayer() {
+        with(binding) {
+            container.layoutParams = (container.layoutParams as MarginLayoutParams).apply {
+                bottomMargin = resources.getDimension(R.dimen.bottom_player_height).toInt()
+            }
+            bottomSheetPlayer.root.isVisible = true
+        }
+    }
+
+    private fun highlightCurrentTrack() {
+        val currentTrackId = mediaController?.currentMediaItem?.mediaId?.toLongOrNull()
+
+        adapter?.submitList(trackList.map {
+            TrackItem(
+                track = it,
+                isSelected = (currentTrackId == it.id)
+            )
+        })
     }
 
     private fun updateButtons() {

@@ -9,7 +9,9 @@
     android:clickable="true"
     android:focusable="true"
     android:minHeight="@dimen/bottom_player_height"
-    app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
+    android:visibility="gone"
+    app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior"
+    tools:visibility="visible">
 
     <com.google.android.material.progressindicator.LinearProgressIndicator
         android:id="@+id/track_progress"
