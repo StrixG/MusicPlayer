@@ -45,7 +45,7 @@ class AlbumFragment : Fragment(R.layout.fragment_album) {
     private val mediaControllerListener = object : Player.Listener {
 
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-            highlightCurrentTrack()
+            updateTrackList(trackList)
             updateTrackInfo()
         }
 
@@ -56,7 +56,7 @@ class AlbumFragment : Fragment(R.layout.fragment_album) {
                     Player.EVENT_PLAYBACK_SUPPRESSION_REASON_CHANGED
                 )
             ) {
-                if (player.playWhenReady) {
+                if (player.isPlaying || player.playWhenReady) {
                     showBottomPlayer()
                 }
 
@@ -92,7 +92,6 @@ class AlbumFragment : Fragment(R.layout.fragment_album) {
                 mediaController?.run {
                     if (Util.shouldShowPlayButton(this) && currentMediaItem == null) {
                         populatePlaylist()
-                        currentMediaItem
                     }
                     Util.handlePlayPauseButtonAction(this)
                 }
@@ -113,18 +112,7 @@ class AlbumFragment : Fragment(R.layout.fragment_album) {
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.uiState.onEach {
-                    it.album?.let { album ->
-                        albumTitle.text = album.title
-                        artist.text = album.artist
-                        published.text = album.published
-
-                        publishedDivider.isVisible = true
-
-                        trackList = album.tracks
-                        adapter?.submitList(trackList.map(::TrackItem))
-                    }
-                }.launchIn(this)
+                viewModel.uiState.onEach(::handleUiState).launchIn(this)
 
                 launch {
                     while (isActive) {
@@ -149,15 +137,30 @@ class AlbumFragment : Fragment(R.layout.fragment_album) {
 
     override fun onStart() {
         super.onStart()
-        initializePlayer()
+        initializeMediaController()
     }
 
     override fun onStop() {
-        releasePlayer()
+        releaseMediaController()
         super.onStop()
     }
 
-    private fun initializePlayer() {
+    private fun handleUiState(state: AlbumUiState) = with(binding) {
+        state.album?.let { album ->
+            albumTitle.text = album.title
+            artist.text = album.artist
+            published.text = album.published
+
+            publishedDivider.isVisible = true
+
+            trackList = album.tracks
+            updateTrackList(trackList)
+        }
+
+        Unit
+    }
+
+    private fun initializeMediaController() {
         if (mediaController != null) return
 
         val context = requireContext()
@@ -175,7 +178,7 @@ class AlbumFragment : Fragment(R.layout.fragment_album) {
             }
     }
 
-    private fun releasePlayer() {
+    private fun releaseMediaController() {
         mediaControllerFuture?.let(MediaController::releaseFuture)
         mediaController?.release()
         mediaControllerFuture = null
@@ -183,14 +186,16 @@ class AlbumFragment : Fragment(R.layout.fragment_album) {
     }
 
     private fun onMediaControllerReady(mediaController: MediaController) {
-        this.mediaController = mediaController.apply {
+        this.mediaController = mediaController
+        mediaController.apply {
+            prepare()
+
             repeatMode = Player.REPEAT_MODE_ALL
             addListener(mediaControllerListener)
-            prepare()
 
             if (isPlaying || playWhenReady) {
                 showBottomPlayer()
-                highlightCurrentTrack()
+                updateTrackList(trackList)
             }
         }
 
@@ -218,7 +223,7 @@ class AlbumFragment : Fragment(R.layout.fragment_album) {
         }
     }
 
-    private fun highlightCurrentTrack() {
+    private fun updateTrackList(trackList: List<Track>) {
         val currentTrackId = mediaController?.currentMediaItem?.mediaId?.toLongOrNull()
 
         adapter?.submitList(trackList.map {
