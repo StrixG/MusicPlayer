@@ -54,10 +54,12 @@ dependencies {
 
     implementation(libs.core.ktx)
     implementation(libs.appcompat)
+    implementation(libs.lifecycle.viewmodel)
+    implementation(libs.activity)
+    implementation(libs.fragment)
     implementation(libs.material)
     implementation(libs.constraintlayout)
     implementation(libs.recyclerview)
-    implementation(libs.bundles.navigation)
     implementation(libs.media3.common)
     implementation(libs.media3.session)
     implementation(libs.media3.exoplayer)
